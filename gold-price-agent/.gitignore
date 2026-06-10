@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.env
+.greennode.json
+.agentbase/
+.agentbase-state.json
+*.credentials.json
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
