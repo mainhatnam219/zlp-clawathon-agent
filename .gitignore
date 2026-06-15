@@ -1,2 +1,11 @@
 .greennode.json
 .agentbase/
+.mock-prd/
+mock-prd/
+venv
+.env
+__pycache__/
+*.py[cod]
+*.db
+.DS_Store
+.agentbase-state.json
