@@ -8,9 +8,9 @@
 
 Khi phát triển sản phẩm chứng khoán (TKCK — Tài Khoản Chứng Khoán trên Zalopay), đội ngũ sản phẩm và kỹ thuật phải làm việc với khối lượng tài liệu rất lớn:
 
-- **140+ tài liệu đặc tả tính năng (PRD)** trải rộng trên nhiều domain: nạp tiền, lệnh giao dịch, onboarding, ví, sao kê...
-- **Knowledge Base nghiệp vụ** mô tả luồng xử lý, business rule, quyết định kiến trúc (ADR), và liên kết đến source code cụ thể
-- **Thông tin phân tán**, không có điểm tra cứu tập trung — tìm một tính năng phải mở hàng chục file, tìm một business rule phải hỏi người, tra một đoạn code phải đoán tên file
+- **Nhiều tài liệu đặc tả tính năng (PRD)** trải rộng trên nhiều domain: nạp tiền, lệnh giao dịch, onboarding, ví, sao kê...
+- **Knowledge Base nghiệp vụ** mô tả luồng xử lý, business rule, các thay đổi của hệ thống
+- **Thông tin phân tán** không có điểm tra cứu tập trung — tìm một tính năng phải mở hàng chục file, tìm một business rule phải hỏi người, tra một đoạn code phải đoán tên file
 
 **Stock Knowledge Hub giải quyết bằng cách:**
 - Cung cấp một giao diện hỏi-đáp
@@ -27,8 +27,6 @@ Khi phát triển sản phẩm chứng khoán (TKCK — Tài Khoản Chứng Kho
 | **Software Engineer** | "Flow đặt lệnh hoạt động như thế nào?" / "File nào xử lý logic deposit?" |
 | **QA / Tester** | "Điều kiện để lệnh MP được khớp là gì?" / "Onboarding flow có những edge case nào?" |
 | **Thành viên mới** | "Giải thích kiến trúc tổng thể TKCK cho tôi" / "Từ điển thuật ngữ chứng khoán trong sản phẩm" |
-
-Agent hỗ trợ cả tiếng Việt lẫn tiếng Anh, tự động nhận diện ngôn ngữ và trả lời theo ngôn ngữ người dùng đang dùng.
 
 ---
 
@@ -107,12 +105,7 @@ Agent có thể trả lời "tính năng X được implement ở file nào, dò
 ### 3. Tri thức tổ chức không phụ thuộc vào cá nhân
 Toàn bộ business rule, flow, ADR được index và truy vấn được — giảm phụ thuộc vào "người biết" trong team, đặc biệt khi có thành viên mới hoặc khi rotate.
 
-### 4. Chi phí vận hành thấp
-- **Response cache 7 ngày**: các câu hỏi lặp lại không tốn thêm LLM API call
-- **SQLite FTS5**: không cần Elasticsearch hay vector database bên ngoài — triển khai single-container, không infra phức tạp
-- **Stateless agent**: không quản lý session server-side, scale ngang dễ dàng
-
-### 5. Tích hợp sẵn vào GreenNode AgentBase
+### 4. Tích hợp sẵn vào GreenNode AgentBase
 Chạy trên nền tảng AI agent của VNG Cloud với xác thực OAuth, monitoring, và hỗ trợ cả Web UI lẫn API invocation — sẵn sàng cho production.
 
 ---
