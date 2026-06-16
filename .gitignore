@@ -9,3 +9,5 @@ __pycache__/
 *.db
 .DS_Store
 .agentbase-state.json
+project-kb/
+INDEX.yaml
