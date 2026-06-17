@@ -81,65 +81,73 @@ Người dùng (Web UI / API)
 
 **Response cache** (SQLite, TTL 7 ngày) — câu hỏi lặp lại trả về ngay với streaming effect giống thật.
 
+
 ---
 
-## Quy trình đảm bảo chất lượng Knowledge Base
+## Quy trình xây dựng Knowledge Base
 
-Điểm khác biệt quan trọng: mỗi claim từ tài liệu đặc tả đều phải qua bước đối chiếu với codebase trước khi được chấp nhận vào KB.
+Project KB được khởi tạo bằng một AI agent thực hiện việc trích xuất knowledge từ các nguồn tài liệu của dự án — PRD, technical design, tài liệu domain — và đối chiếu với codebase để xác định những thông tin đáng được lưu giữ. Kết quả của quá trình này không phải một kho dữ liệu khép kín, mà là tập hợp các file markdown được đề xuất thông qua Pull Request và phải qua review của con người trước khi được hợp nhất. Cơ chế này hiện thực hóa nguyên tắc docs-as-code: knowledge được quản lý version, gắn ownership, trải qua quy trình phê duyệt — tương đồng với cách team vận hành source code.
 
 ```mermaid
 flowchart TD
-    A["📄 Claim từ tài liệu đặc tả\nbusiness rule, flow"] --> B
+    A["Tài liệu nguồn<br/>PRD, technical design, domain docs"] --> B["AI agent<br/>trích xuất knowledge"]
+    B --> C["Selection Index<br/>(chỉ mục — định tuyến tài liệu)"]
+    B --> D["Project KB<br/>(knowledge đã chắt lọc)"]
+    Code["Codebase (read-only)"] -. verify .-> D
+    C --> E["Human review (PR)"]
+    D --> E
+    E --> F["Main workflow<br/>retrieve context khi cần"]
 
-    B["🔍 Đối chiếu codebase\ngrep + đọc code"]:::highlight --> C
+    classDef gray fill:#F1EFE8,stroke:#5F5E5A,color:#2C2C2A
+    classDef purple fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    classDef teal fill:#E1F5EE,stroke:#0F6E56,color:#04342C
+    classDef blue fill:#E6F1FB,stroke:#185FA5,color:#042C53
+    classDef amber fill:#FAEEDA,stroke:#854F0B,color:#412402
+    classDef coral fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
+    classDef green fill:#EAF3DE,stroke:#3B6D11,color:#173404
+    class A gray
+    class B purple
+    class C teal
+    class D blue
+    class Code amber
+    class E coral
+    class F green
+```
 
-    C{"Khớp với code?"}
+Quá trình tạo ra hai sản phẩm song song, phục vụ hai mục đích khác biệt. Selection Index là một chỉ mục gọn nhẹ, trỏ ngược về tài liệu nguồn, giúp xác định tài liệu cần truy xuất khi yêu cầu thông tin chi tiết. Project KB là lớp knowledge đã được chắt lọc và đối chiếu với code — có độ tin cậy cao hơn khi sử dụng làm context, đổi lại đòi hỏi nỗ lực review lớn hơn. Cả hai đều không được đưa trực tiếp vào workflow mà phải qua human review; con người thẩm định, hiệu chỉnh, rồi mới hợp nhất, đảm bảo nội dung trong KB phản ánh hiểu biết đã được xác nhận thay vì suy luận chưa kiểm chứng của agent.
 
-    C -->|khớp| D["✅ Verified in code\nstatus: active\ngắn code_ref"]:::verified
-    C -->|không khớp| E["⚠️ Chưa verify / mâu thuẫn\nstatus: needs-review\nflag drift, ghi lý do"]:::needs_review
+## Cơ chế kiểm chứng đặc tả đối chiếu với codebase
 
-    D --> F
+Thách thức trọng yếu khi xây dựng KB không nằm ở việc tạo ra tài liệu, mà ở việc xác định mức độ tin cậy của từng knowledge item. Tài liệu đặc tả có thể đã lỗi thời, hoặc mô tả ý định thiết kế ban đầu khác với những gì thực sự được triển khai. Do đó, mỗi claim trích xuất từ đặc tả — một business rule hay một bước trong flow — đều được đối chiếu với codebase. Việc đối chiếu này được tổ chức thành một quality gate có phân nhánh, không phải một bước xác nhận tuyến tính.
+
+```mermaid
+flowchart TD
+    A["Claim từ đặc tả<br/>(business rule, flow)"] --> B["Đối chiếu codebase<br/>truy xuất và đọc code liên quan"]
+    B --> C{"Khớp với code?"}
+    C -->|khớp| D["Verified in code<br/>status: active, gắn code reference"]
+    C -->|mâu thuẫn| E["Mâu thuẫn<br/>status: needs-review, flag drift"]
+    D --> F["Human review (PR)"]
     E --> F
+    F --> G["Merge vào Project KB"]
 
-    F["👤 Human review (PR)\nsoi kỹ item needs-review"]:::review --> G
-
-    G["✨ Merge vào Project KB\nknowledge đáng tin cậy"]:::merged
-
-    classDef highlight fill:#e8e4f8,stroke:#7c6bb5,color:#3d2b8e
-    classDef verified fill:#e8f5e9,stroke:#4caf50,color:#1b5e20
-    classDef needs_review fill:#fff3e0,stroke:#ff9800,color:#7c4a00
-    classDef review fill:#fce4e4,stroke:#e57373,color:#7f1c1c
-    classDef merged fill:#e3f2fd,stroke:#64b5f6,color:#0d47a1
+    classDef gray fill:#F1EFE8,stroke:#5F5E5A,color:#2C2C2A
+    classDef purple fill:#EEEDFE,stroke:#534AB7,color:#26215C
+    classDef green fill:#EAF3DE,stroke:#3B6D11,color:#173404
+    classDef amber fill:#FAEEDA,stroke:#854F0B,color:#412402
+    classDef coral fill:#FAECE7,stroke:#993C1D,color:#4A1B0C
+    classDef blue fill:#E6F1FB,stroke:#185FA5,color:#042C53
+    class A gray
+    class B purple
+    class C gray
+    class D green
+    class E amber
+    class F coral
+    class G blue
 ```
 
----
+Nguyên tắc cốt lõi: một claim mâu thuẫn với code hoặc không thể xác minh sẽ không bị loại bỏ, mà được giữ lại với status `needs-review`, kèm theo cờ đánh dấu drift và lý do cụ thể, rồi chuyển cho con người xử lý. Cơ sở của cách làm này là một mismatch có thể bắt nguồn từ đặc tả sai hoặc lỗi thời, nhưng cũng có thể phản ánh việc code đã drift khỏi spec. Agent không có thẩm quyền phán quyết bên nào là nguồn chính xác, nên vai trò của nó dừng lại ở mức phát hiện và đánh dấu; quyết định cuối cùng thuộc về con người. Nhờ vậy, human review có thể tập trung vào đúng các item `needs-review` thay vì phải rà soát toàn bộ KB.
 
-## Pipeline xây dựng Knowledge Base
-
-Đây là phần phân biệt hệ thống với việc "chỉ index tài liệu":
-
-```
-PRD documents (140+ files)
-        │
-        ▼  [Bước 1 — Index mode]
-  INDEX.yaml (sub_area, type, use_when, topics, status)
-        │
-        ▼  [Bước 2 — Knowledge extraction]
-  Project KB (project-kb/domains/stock/)
-  ├── business-rules.md  — rules + provenance
-  ├── flows/*.md         — cross-service flow maps
-  ├── glossary.md        — business ↔ code term mapping
-  ├── adr.md             — design decisions + rationale
-  └── risks.md           — known risks, compliance notes
-        │
-        ▼  [Bước 3 — Code verification]
-  code_refs verified against actual repo
-  (status: active | needs-review | deprecated)
-        │
-        ▼
-  knowledge.db (SQLite FTS5)
-  → Agent có thể tra cứu với độ chính xác cao
-```
+Bên cạnh hai nhánh trên còn tồn tại một loại claim mà code không thể xác nhận lẫn phủ định — các business rule thuần túy như giới hạn theo cấp KYC hoặc điều kiện nghiệp vụ không được thể hiện trong code. Những item này mặc định cũng được đặt ở trạng thái `needs-review`, chờ Product hoặc owner xác nhận, thay vì tự động gắn `active`.
 
 ---
 
