@@ -1,150 +1,176 @@
 # Stock Knowledge Hub — AI Agent cho Sản phẩm Chứng Khoán Zalopay
 
-> **Agent tra cứu tài liệu sản phẩm bằng ngôn ngữ tự nhiên** — tích hợp 140+ tài liệu đặc tả tính năng và knowledge base nghiệp vụ của nền tảng TKCK trên Zalopay.
+> **Không chỉ là tìm kiếm tài liệu — đây là tri thức nghiệp vụ đã được chưng cất và đối chiếu với codebase thực tế.**
 
 ---
 
-## Agent giải quyết vấn đề gì?
+## Vấn đề thực sự
 
-Khi phát triển sản phẩm chứng khoán (TKCK — Tài Khoản Chứng Khoán trên Zalopay), đội ngũ sản phẩm và kỹ thuật phải làm việc với khối lượng tài liệu rất lớn:
+Hãy tưởng tượng bạn là kỹ sư mới join team TKCK (Tài Khoản Chứng Khoán trên Zalopay).
 
-- **Nhiều tài liệu đặc tả tính năng (PRD)** trải rộng trên nhiều domain: nạp tiền, lệnh giao dịch, onboarding, ví, sao kê...
-- **Knowledge Base nghiệp vụ** mô tả luồng xử lý, business rule, các thay đổi của hệ thống
-- **Thông tin phân tán** không có điểm tra cứu tập trung — tìm một tính năng phải mở hàng chục file, tìm một business rule phải hỏi người, tra một đoạn code phải đoán tên file
+Ngày đầu tiên, bạn được giao task liên quan đến flow nạp tiền. Bạn không biết:
+- Hệ thống có bao nhiêu service liên quan? Service nào làm gì?
+- Business rule nào chi phối flow này? Có edge case nào đặc biệt không?
+- File nào trong repo xử lý validation? Đọc file nào trước?
+- Tài liệu đặc tả nằm ở đâu? Cái nào còn hiệu lực, cái nào đã cũ?
 
-**Stock Knowledge Hub giải quyết bằng cách:**
-- Cung cấp một giao diện hỏi-đáp
-- Agent tự động tra cứu đúng tài liệu, tổng hợp câu trả lời thay vì trả về link thô
-- Kết nối được từ câu hỏi nghiệp vụ → đặc tả tính năng → file source code cụ thể
+Bạn mất 2–3 ngày hỏi người này người kia, mở hàng chục file, đọc hàng chục tài liệu trên Confluence — và vẫn không chắc mình hiểu đúng.
 
----
-
-## Ai là người sử dụng?
-
-| Vai trò | Nhu cầu điển hình |
-|---|---|
-| **Product Manager / BA** | "Tính năng rút tiền có những acceptance criteria nào?" / "Domain ví có bao nhiêu tính năng?" |
-| **Software Engineer** | "Flow đặt lệnh hoạt động như thế nào?" / "File nào xử lý logic deposit?" |
-| **QA / Tester** | "Điều kiện để lệnh MP được khớp là gì?" / "Onboarding flow có những edge case nào?" |
-| **Thành viên mới** | "Giải thích kiến trúc tổng thể TKCK cho tôi" / "Từ điển thuật ngữ chứng khoán trong sản phẩm" |
+**Đây là vấn đề của mọi người mới onboarding vào một sản phẩm tài chính phức tạp.**
 
 ---
 
-## Agent hoạt động như thế nào?
+## Stock Knowledge Hub giải quyết điều này như thế nào?
 
-### Kiến trúc tổng quan
+Chúng tôi không chỉ đơn thuần index tài liệu. Điểm khác biệt cốt lõi là:
+
+### Tri thức được chưng cất, không phải copy-paste
+
+Từ hàng trăm trang đặc tả tính năng (PRD), chúng tôi trích xuất ra một **Project Knowledge Base (KB)** — một lớp tri thức trung gian chứa đúng những gì code không thể tự diễn đạt:
+- **Business rule** với nguồn gốc rõ ràng (`[PRD: tên-file]`, `[code: path:line]`)
+- **Flow map mức cao** qua các service — ai gọi ai, theo thứ tự nào
+- **Thuật ngữ nghiệp vụ** (glossary) mapping khái niệm business ↔ tên trong code
+- **ADR / Design rationale** — tại sao team chọn phương án này, không phải phương án kia
+- **Known risks** — những điểm nhạy cảm về tiền, settlement, compliance
+
+### Tri thức được đối chiếu với codebase thực
+
+Mỗi business rule trong KB đều có `code_refs` trỏ đến file và dòng code cụ thể đã được verify. Khi hỏi "luồng nạp tiền hoạt động thế nào?", agent không chỉ giải thích luồng mà còn có thể nói "validation xảy ra ở `funding-service/handler/deposit.go:142`".
+
+Điều này có nghĩa là:
+- **Người mới** biết ngay đọc file nào, dòng nào
+- **Engineer** debug nhanh hơn vì hiểu intent của business rule
+- **PM/BA** tra cứu được trạng thái thực tế của feature, không phải tài liệu cũ
+
+---
+
+## Ai dùng được gì?
+
+| Vai trò | Câu hỏi điển hình | Agent trả lời được vì... |
+|---|---|---|
+| **Kỹ sư mới onboarding** | "Giải thích toàn bộ flow đặt lệnh cho tôi" / "Service nào tôi cần đọc code trước?" | KB có flow map + code_refs đã verified |
+| **Software Engineer** | "File nào xử lý logic withdrawal validation?" / "Business rule nào ảnh hưởng đến matching?" | code_refs trong KB trỏ thẳng đến file:line |
+| **Product Manager / BA** | "Acceptance criteria của MP order là gì?" / "Feature margin trading cover edge case nào?" | 140+ đặc tả được index với metadata đầy đủ |
+| **QA / Tester** | "Điều kiện để lệnh bị reject?" / "Onboarding flow có những happy path nào?" | Business rules + flows được structured |
+| **Tech Lead** | "Tại sao team chọn kiến trúc này?" / "Có design decision nào liên quan đến settlement không?" | ADR và design rationale được lưu trong KB |
+
+---
+
+## Kiến trúc
 
 ```
-Người dùng (Web UI / GreenNode Platform)
+Người dùng (Web UI / API)
         │
         ▼
-  [Flask / Starlette Web Server]
+  [LangGraph ReAct Agent]  ←── System Prompt (TKCK context)
         │
-        ▼
-  [LangGraph ReAct Agent]  ←── System Prompt (TKCK context, language rules)
-        │
-        ├── search_prd          → Tìm kiếm tài liệu đặc tả theo từ khóa
-        ├── search_requirements → Tìm acceptance criteria cụ thể
-        ├── get_prd_detail      → Lấy toàn bộ nội dung một tài liệu
-        ├── list_features       → Liệt kê tính năng theo domain
-        ├── search_kb           → Tìm trong knowledge base nghiệp vụ
-        ├── get_kb_detail       → Xem chi tiết một entry KB
-        └── find_code_refs      → Tìm file source code liên quan
+        ├── search_prd          → 140+ đặc tả tính năng (FTS5, BM25 ranking)
+        ├── search_requirements → Acceptance criteria cụ thể
+        ├── get_prd_detail      → Toàn văn một tài liệu
+        ├── list_features       → Liệt kê theo domain/sub-area
+        ├── search_kb           → Knowledge Base đã chưng cất
+        ├── get_kb_detail       → Business rules, flows, ADR chi tiết
+        └── find_code_refs      → File source code đã verified
                 │
                 ▼
-        [SQLite + FTS5 Full-Text Search]
-         ├── prd_nodes (140+ feature docs)
-         └── kb_nodes (business rules, flows, ADRs, glossary)
+        [SQLite FTS5]
+         ├── prd_nodes    — 140+ feature specs (index từ INDEX.yaml)
+         ├── kb_nodes     — Business rules / flows / glossary / ADR / risks
+         └── code_refs    — File:line references đã đối chiếu với codebase
 ```
 
-### Luồng xử lý một câu hỏi
+**Response cache** (SQLite, TTL 7 ngày) — câu hỏi lặp lại trả về ngay với streaming effect giống thật.
 
-1. **Người dùng gửi câu hỏi** qua giao diện web hoặc GreenNode Platform API
-2. **Kiểm tra cache** — nếu câu hỏi tương tự đã được trả lời trong 7 ngày qua, trả về kết quả ngay (stream giả lập để UX nhất quán)
-3. **ReAct Agent suy luận** — LLM phân tích câu hỏi, chọn tool phù hợp, thực thi, quan sát kết quả, lặp lại nếu cần
-4. **Full-text search** qua SQLite FTS5 — tìm kiếm xếp hạng theo độ liên quan (BM25)
-5. **Tổng hợp câu trả lời** — LLM kết hợp kết quả từ nhiều tool, viết câu trả lời dạng markdown
-6. **Stream real-time** qua SSE (Server-Sent Events) — người dùng thấy câu trả lời xuất hiện từng token
+---
 
-### Pipeline nạp dữ liệu (Ingestion)
+## Quy trình đảm bảo chất lượng Knowledge Base
+
+Điểm khác biệt quan trọng: mỗi claim từ tài liệu đặc tả đều phải qua bước đối chiếu với codebase trước khi được chấp nhận vào KB.
+
+```mermaid
+flowchart TD
+    A["📄 Claim từ tài liệu đặc tả\nbusiness rule, flow"] --> B
+
+    B["🔍 Đối chiếu codebase\ngrep + đọc code"]:::highlight --> C
+
+    C{"Khớp với code?"}
+
+    C -->|khớp| D["✅ Verified in code\nstatus: active\ngắn code_ref"]:::verified
+    C -->|không khớp| E["⚠️ Chưa verify / mâu thuẫn\nstatus: needs-review\nflag drift, ghi lý do"]:::needs_review
+
+    D --> F
+    E --> F
+
+    F["👤 Human review (PR)\nsoi kỹ item needs-review"]:::review --> G
+
+    G["✨ Merge vào Project KB\nknowledge đáng tin cậy"]:::merged
+
+    classDef highlight fill:#e8e4f8,stroke:#7c6bb5,color:#3d2b8e
+    classDef verified fill:#e8f5e9,stroke:#4caf50,color:#1b5e20
+    classDef needs_review fill:#fff3e0,stroke:#ff9800,color:#7c4a00
+    classDef review fill:#fce4e4,stroke:#e57373,color:#7f1c1c
+    classDef merged fill:#e3f2fd,stroke:#64b5f6,color:#0d47a1
+```
+
+---
+
+## Pipeline xây dựng Knowledge Base
+
+Đây là phần phân biệt hệ thống với việc "chỉ index tài liệu":
 
 ```
-PRD Markdown files + INDEX.yaml
+PRD documents (140+ files)
+        │
+        ▼  [Bước 1 — Index mode]
+  INDEX.yaml (sub_area, type, use_when, topics, status)
+        │
+        ▼  [Bước 2 — Knowledge extraction]
+  Project KB (project-kb/domains/stock/)
+  ├── business-rules.md  — rules + provenance
+  ├── flows/*.md         — cross-service flow maps
+  ├── glossary.md        — business ↔ code term mapping
+  ├── adr.md             — design decisions + rationale
+  └── risks.md           — known risks, compliance notes
+        │
+        ▼  [Bước 3 — Code verification]
+  code_refs verified against actual repo
+  (status: active | needs-review | deprecated)
         │
         ▼
-  ingest.py → parse frontmatter, trích xuất nội dung
-        │
-        ▼
-  knowledge.db (SQLite)
-  ├── prd_nodes + prd_fts (FTS5 index)
-  └── kb_nodes + kb_fts + code_refs
+  knowledge.db (SQLite FTS5)
+  → Agent có thể tra cứu với độ chính xác cao
 ```
 
-### Tech Stack
+---
+
+## Tech Stack
 
 | Thành phần | Công nghệ |
 |---|---|
-| Agent Framework | LangGraph (ReAct pattern) + LangChain |
-| LLM | OpenAI-compatible API (hỗ trợ GreenNode AIP, OpenAI, v.v.) |
-| Database | SQLite với FTS5 full-text search |
-| Backend | Python, Starlette/Flask, Server-Sent Events |
-| Frontend | Vanilla JS, dark theme UI, marked.js, localStorage |
+| Agent Framework | LangGraph (ReAct) + LangChain |
+| LLM | OpenAI-compatible (GreenNode AIP / OpenAI) |
+| Database | SQLite FTS5 (BM25 full-text ranking) |
+| Backend | Python, Starlette, Server-Sent Events |
+| Frontend | Vanilla JS, dark UI, marked.js, localStorage |
 | Platform | GreenNode AgentBase (VNG Cloud) |
-| Container | Docker (Python 3.13-slim, port 8080) |
-
----
-
-## Giá trị mà Agent mang lại
-
-### 1. Tiết kiệm thời gian tra cứu
-Thay vì mở 10–20 file để tìm một thông tin, người dùng hỏi một câu và nhận câu trả lời tổng hợp trong vài giây.
-
-### 2. Kết nối đặc tả → implementation
-Agent có thể trả lời "tính năng X được implement ở file nào, dòng nào" — kết nối trực tiếp từ yêu cầu nghiệp vụ đến source code, giảm thời gian onboarding và debug.
-
-### 3. Tri thức tổ chức không phụ thuộc vào cá nhân
-Toàn bộ business rule, flow, ADR được index và truy vấn được — giảm phụ thuộc vào "người biết" trong team, đặc biệt khi có thành viên mới hoặc khi rotate.
-
-### 4. Tích hợp sẵn vào GreenNode AgentBase
-Chạy trên nền tảng AI agent của VNG Cloud với xác thực OAuth, monitoring, và hỗ trợ cả Web UI lẫn API invocation — sẵn sàng cho production.
 
 ---
 
 ## Cài đặt & Chạy thử
 
-### Yêu cầu
-
 ```bash
-# Clone repo
 git clone https://github.com/mainhatnam219/zlp-clawathon-agent.git
 cd zlp-clawathon-agent
-
-# Tạo file .env từ template
 cp .env.example .env
 # Điền GREENNODE_CLIENT_ID, GREENNODE_CLIENT_SECRET, LLM_API_KEY, LLM_BASE_URL, LLM_MODEL
-```
 
-### Nạp dữ liệu
-
-```bash
-# Đặt PRD markdown files vào mock-prd/ và INDEX.yaml
-# Đặt KB files vào project-kb/
+# Nạp dữ liệu (PRD + KB)
 python ingest.py
-```
 
-### Chạy local
-
-```bash
+# Chạy local
 pip install -r requirements.txt
 python main.py
-# Mở http://localhost:8080
-```
-
-### Chạy với Docker
-
-```bash
-docker build -t stock-knowledge-hub .
-docker run -p 8080:8080 --env-file .env stock-knowledge-hub
+# → http://localhost:8080
 ```
 
 ---
@@ -152,12 +178,12 @@ docker run -p 8080:8080 --env-file .env stock-knowledge-hub
 ## Ví dụ câu hỏi
 
 ```
-"Tính năng nạp tiền có những bước nào?"
-"Acceptance criteria của lệnh thị trường (MP order) là gì?"
-"File nào trong codebase xử lý luồng onboarding?"
-"Giải thích khái niệm margin call trong sản phẩm TKCK"
-"Domain ví có bao nhiêu tính năng đã đặc tả?"
-"What are the business rules for order matching?"
+"Mình mới join team, luồng nạp tiền hoạt động thế nào từ đầu đến cuối?"
+"Business rule nào ảnh hưởng đến việc khớp lệnh MP?"
+"File nào xử lý deposit validation? Dòng mấy?"
+"Tại sao team thiết kế flow onboarding theo hướng này?"
+"Margin call được trigger khi nào? Có known risk gì không?"
+"Domain ví có những tính năng nào đã đặc tả?"
 ```
 
 ---
